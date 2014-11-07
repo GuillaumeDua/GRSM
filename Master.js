@@ -1,5 +1,5 @@
-var Class			= require('../NodeJS_GCL/Inheritance.js').Class;
-var Runnable		= require('../NodeJS_GCL/Runnable.js').Base;
+var Class			= require('../GCL_NodeJs/Inheritance.js').Class;
+var Runnable		= require('../GCL_NodeJs/Runnable.js').Base;
 var net 			= require('net');
 var colors 			= require('colors');
 
@@ -103,19 +103,22 @@ var Master = Class.extend(// Runnable.extend(
 	InitializeServer		: function()
 	{
 		this._server = net.createServer(function(c) { //'connection' listener
-			LogFor('server', 'Slave connected : [' +  SlaveManagerInstance.Add(c) + ']');
+		
+			var adress = c.address();
+			LogFor('server', 'Slave connected : [' +  SlaveManagerInstance.Add(c) + '] : [' + adress.port + ', ' + adress.family + ', ' + adress.address + '] from remote : [' + c.remoteAddress.green + ']');
 			var rdChunk = "";
 			c.on('end', function() {
-				LogFor('server', 'Slave disconnected');
+				LogFor('server', 'Slave disconnected : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
 				SlaveManagerInstance.RemoveBySocket(c);
 			});
 			c.on('data', function(data) {
-				rdChunk += data;
-				if (data == '\n')
+				// LogFor("Debug", "client.onData : [" + data + "] to chunk : [" + rdChunk + "]");
+				if (data == "\r\n")
 				{
-					data.substr(0, data.length - 1);
-					LogFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + data + ']');
+					LogFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
+					rdChunk = "";
 				}
+				else rdChunk += data;
 			});
 			
 			// [todo] : on : close, timeout
@@ -155,6 +158,11 @@ var Master = Class.extend(// Runnable.extend(
 	{
 		Log("SendDatasToSlave (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
 		var socket = SlaveManagerInstance.GetSocketById(args[0]);
+		if (typeof(socket) == "undefined")
+		{
+			LogFor("Error", "That client does not exist : [" + args[0] + "]");
+			return;
+		}
 		var data = "";
 		for (var i = 1; i < args.length; ++i)
 			data += (i != 1 ?  ' ' + args[i] : args[i]);
