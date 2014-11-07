@@ -56,7 +56,7 @@ function	GetSocketDump(socket)
 
 var Master = Class.extend(// Runnable.extend(
 {
-	initialize			: function()
+	initialize				: function()
 	{
 		this.InitializeCmdManager();
 		this.InitializeServer();
@@ -99,7 +99,6 @@ var Master = Class.extend(// Runnable.extend(
 		CmdLineManager.Insert("list_slaves", 	CreateDelegate(this.ListSlaves, this));
 		CmdLineManager.Insert("kick_slave", 	CreateDelegate(this.KickSlave, this));
 		CmdLineManager.Insert("send_slave", 	CreateDelegate(this.SendDatasToSlave, this));
-		// [Todo] : send datas to a specific slave
 	},
 	ListSlaves				: function()
 	{
@@ -113,7 +112,7 @@ var Master = Class.extend(// Runnable.extend(
 		
 		var socket = SlaveManagerInstance.GetSocketById(slaveId);
 		socket.end();
-		// SlaveManagerInstance.RemoveById(slaveId);
+		SlaveManagerInstance.RemoveById(slaveId);
 	},
 	SendDatasToSlave		: function(args)
 	{
@@ -130,20 +129,12 @@ var Master = Class.extend(// Runnable.extend(
 		Logger.write("writing to [" + args[0] + "] : [" + data + "]");
 		socket.write(data);
 	}
-	// DebugStart				: function()
-	// {
-		// this.StartTimedCall(1000);
-	// }
 });
 
-
-// CmdManager.Insert("list slaves", )
-
-Logger.write("[+] Master script started");
+Logger.writeFor("Master", "About to start");
 
 var MasterInstance = new Master();
 CmdLineManager.StartRecordingInputs();
 
-
-Logger.write("Master is ready to start");
+Logger.writeFor("Master", "Started");
 
