@@ -18,7 +18,7 @@ var Slave = Class.extend(
 {
 	_socket : null,
 	
-	initialize			: function()
+	initialize				: function()
 	{
 		this.InitializeCmdManager();
 		// this.Connect();
@@ -36,7 +36,13 @@ var Slave = Class.extend(
 	},
 	InitializeCmdManager	: function()
 	{
-		CmdLineManager.Insert("cmd", 	CreateDelegate(this.ExecuteCmd, this));
+		CmdLineManager.Insert("cmd", 	CreateDelegate(this.ExecuteCmd, 	this));
+		CmdLineManager.Insert("script", CreateDelegate(this.ExecuteScript, 	this));
+	},
+	ExecuteScript			: function(cmd, script)
+	{
+		// write script to file
+		// Execute cmd with arg == script_path
 	},
 	ExecuteCmd				: function(args)
 	{
