@@ -1,48 +1,9 @@
 var Class			= require('../GCL_NodeJs/Inheritance.js').Class;
-var Runnable		= require('../GCL_NodeJs/Runnable.js').Base;
 var net 			= require('net');
 var colors 			= require('colors');
+var Logger			= require('../GCL_NodeJs/Logger.js').Logger;
+var	CmdLineManager	= require('../GCL_NodeJs/CmdLineManager.js').CmdLineManager;
 
-
-
-function	Log(log)
-{
-	console.log("[+]".bold.grey.inverse + " : " + log);
-}
-function	LogFor(token, log)
-{
-	console.log("[+]".bold.grey.inverse + "::[" + token.green + "] : " + log);
-}
-
-
-var CmdManager = Class.extend(
-{
-	_cmds 	: {},
-	
-	Insert	: function(key, value)
-	{
-		this._cmds[key] = value;
-	},
-	Remove	: function(key)
-	{
-		// [Todo]
-	},
-	Get	: function(key)
-	{
-		if (key in this._cmds)
-			return this._cmds[key];
-		return null;
-	}
-});
-
-var CmdManagerInstance = new CmdManager();
-
-var	Slave			= function(id, socket)
-{
-	_id = id,
-	_socket = socket,
-	_ip = null
-};
 var	SlaveManager 	=
 {
 	_slaves			: [],
@@ -80,13 +41,18 @@ var	SlaveManager 	=
 var SlaveManagerInstance = SlaveManager;
 
 // [Todo] : Move to GCL
-function CreateDelegate(func, target)
+function 	CreateDelegate(func, target)
 {
     return function() { 
         return func.apply(target, arguments);
     };
 }
 
+function	GetSocketDump(socket)
+{
+	var adress = socket.address();
+	return 'Local : [' + adress.port + ', ' + adress.family + ', ' + adress.address + '], Remote : [' + socket.remoteAddress.green + ']';
+}
 
 var Master = Class.extend(// Runnable.extend(
 {
@@ -94,28 +60,23 @@ var Master = Class.extend(// Runnable.extend(
 	{
 		this.InitializeCmdManager();
 		this.InitializeServer();
-		this._cbCallBack = this.Logic;
-	},
-	Logic				: function()
-	{
-		// console.log("Master::Logic : Called");
 	},
 	InitializeServer		: function()
 	{
 		this._server = net.createServer(function(c) { //'connection' listener
 		
-			var adress = c.address();
-			LogFor('server', 'Slave connected : [' +  SlaveManagerInstance.Add(c) + '] : [' + adress.port + ', ' + adress.family + ', ' + adress.address + '] from remote : [' + c.remoteAddress.green + ']');
+			var id = SlaveManagerInstance.Add(c);
+			Logger.writeFor('server', 'Slave [' + id + '] connected : ' + GetSocketDump(c));
 			var rdChunk = "";
 			c.on('end', function() {
-				LogFor('server', 'Slave disconnected : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
+				Logger.writeFor('server', 'Slave disconnected : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
 				SlaveManagerInstance.RemoveBySocket(c);
 			});
 			c.on('data', function(data) {
-				// LogFor("Debug", "client.onData : [" + data + "] to chunk : [" + rdChunk + "]");
+				// Logger.writeFor("Debug", "client.onData : [" + data + "] to chunk : [" + rdChunk + "]");
 				if (data == "\r\n")
 				{
-					LogFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
+					Logger.writeFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
 					rdChunk = "";
 				}
 				else rdChunk += data;
@@ -127,28 +88,28 @@ var Master = Class.extend(// Runnable.extend(
 			// c.pipe(c);
 		});
 		this._server.listen(4242, function() {
-		  LogFor('server', 'Master server is ready');
+		  Logger.writeFor('server', 'Master server is ready');
 		});
 	},
 	InitializeCmdManager	: function()
 	{
-		// CmdManagerInstance.Insert("quit", 			CreateDelegate(this.Stop, 		this));
-		// CmdManagerInstance.Insert("stop", 			CreateDelegate(this.Stop, 		this));
-		// CmdManagerInstance.Insert("start", 			CreateDelegate(this.DebugStart, this));
-		CmdManagerInstance.Insert("list_slaves", 	CreateDelegate(this.ListSlaves, this));
-		CmdManagerInstance.Insert("kick_slave", 	CreateDelegate(this.KickSlave, this));
-		CmdManagerInstance.Insert("send_slave", 	CreateDelegate(this.SendDatasToSlave, this));
+		// CmdLineManager.Insert("quit", 			CreateDelegate(this.Stop, 		this));
+		// CmdLineManager.Insert("stop", 			CreateDelegate(this.Stop, 		this));
+		// CmdLineManager.Insert("start", 			CreateDelegate(this.DebugStart, this));
+		CmdLineManager.Insert("list_slaves", 	CreateDelegate(this.ListSlaves, this));
+		CmdLineManager.Insert("kick_slave", 	CreateDelegate(this.KickSlave, this));
+		CmdLineManager.Insert("send_slave", 	CreateDelegate(this.SendDatasToSlave, this));
 		// [Todo] : send datas to a specific slave
 	},
 	ListSlaves				: function()
 	{
-		Log("Listing slaves (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
+		Logger.write("Listing slaves (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
 		for (var i = 0; i < SlaveManagerInstance._slaves.length; ++i)
-			Log("\t|- " + i + " => " + SlaveManagerInstance._slaves[i]);
+			Logger.write("\t|- " + i + " => " + GetSocketDump(SlaveManagerInstance._slaves[i]));
 	},
 	KickSlave				: function(slaveId)
 	{
-		Log("Kick slave (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
+		Logger.write("Kick slave (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
 		
 		var socket = SlaveManagerInstance.GetSocketById(slaveId);
 		socket.end();
@@ -156,17 +117,17 @@ var Master = Class.extend(// Runnable.extend(
 	},
 	SendDatasToSlave		: function(args)
 	{
-		Log("SendDatasToSlave (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
+		Logger.write("SendDatasToSlave (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
 		var socket = SlaveManagerInstance.GetSocketById(args[0]);
 		if (typeof(socket) == "undefined")
 		{
-			LogFor("Error", "That client does not exist : [" + args[0] + "]");
+			Logger.writeFor("Error", "That client does not exist : [" + args[0] + "]");
 			return;
 		}
 		var data = "";
 		for (var i = 1; i < args.length; ++i)
 			data += (i != 1 ?  ' ' + args[i] : args[i]);
-		Log("writing to [" + args[0] + "] : [" + data + "]");
+		Logger.write("writing to [" + args[0] + "] : [" + data + "]");
 		socket.write(data);
 	}
 	// DebugStart				: function()
@@ -178,44 +139,11 @@ var Master = Class.extend(// Runnable.extend(
 
 // CmdManager.Insert("list slaves", )
 
-Log("[+] Master script started");
+Logger.write("[+] Master script started");
 
 var MasterInstance = new Master();
-
-// Initialize commande line input :
-process.stdin.setEncoding('utf8');
-process.stdin.on('readable', function()
-{
-	var chunk = process.stdin.read();
-	if (chunk !== null)
-	{
-		if (chunk.length < 3) return;
-		chunk = chunk.substr(0, chunk.length - 2);	// On retire le "\r\n"
-		
-		// todo : Une commande est forcement 1 mot [+args]
-		var split 	= chunk.split(" ");
-		var cmd 	= split[0];
-		var args 	= split;
-		args.splice(0,1);
-		
-		Log("Inout cmd : [" + cmd.green + "] with args : [" + args.toString() + "]");
-		var cb = CmdManagerInstance.Get(cmd);
-		if (cb === null)
-			Log("Unknown cmd");
-		else
-		{
-			if (split.length === 1)
-				cb();
-			else
-			{
-				;
-				cb(args);
-			}
-		}
-	}
-});
+CmdLineManager.StartRecordingInputs();
 
 
-
-Log("Master is ready to start");
+Logger.write("Master is ready to start");
 
