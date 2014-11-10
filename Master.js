@@ -3,6 +3,7 @@ var net 			= require('net');
 var colors 			= require('colors');
 var Logger			= require('../GCL_NodeJs/Logger.js').Logger;
 var	CmdLineManager	= require('../GCL_NodeJs/CmdLineManager.js').CmdLineManager;
+var JSON			= require('JSON');
 
 var	SlaveManager 	=
 {
@@ -69,7 +70,11 @@ var Master = Class.extend(// Runnable.extend(
 			Logger.writeFor('server', 'Slave [' + id + '] connected : ' + GetSocketDump(c));
 			var rdChunk = "";
 			c.on('end', function() {
-				Logger.writeFor('server', 'Slave disconnected : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
+				Logger.writeFor('client', 'Slave disconnected : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
+				SlaveManagerInstance.RemoveBySocket(c);
+			});
+			c.on('error', function() {
+				Logger.writeFor('client', 'error signal emitted for : [' + SlaveManagerInstance.GetIdBySocket(c) + ']');
 				SlaveManagerInstance.RemoveBySocket(c);
 			});
 			c.on('data', function(data) {
@@ -85,18 +90,32 @@ var Master = Class.extend(// Runnable.extend(
 			// c.write('Hello slave\r\n');
 			// c.pipe(c);
 		});
+		this._server.on('error', function(error) {
+			Logger.writeFor('server', 'error close emitted : [' + error.red + ']');
+		});
+		this._server.on('close', function() {
+			Logger.writeFor('server', 'close emitted');
+		});
 		this._server.listen(4242, function() {
 		  Logger.writeFor('server', 'Master server is ready');
 		});
 	},
 	InitializeCmdManager	: function()
 	{
+		//	[Todo] : help
 		// CmdLineManager.Insert("quit", 			CreateDelegate(this.Stop, 		this));
 		// CmdLineManager.Insert("stop", 			CreateDelegate(this.Stop, 		this));
 		// CmdLineManager.Insert("start", 			CreateDelegate(this.DebugStart, this));
-		CmdLineManager.Insert("list_slaves", 	CreateDelegate(this.ListSlaves, this));
-		CmdLineManager.Insert("kick_slave", 	CreateDelegate(this.KickSlave, this));
-		CmdLineManager.Insert("send_slave", 	CreateDelegate(this.SendDatasToSlave, this));
+		CmdLineManager.Insert("list", 	CreateDelegate(this.ListSlaves, this));
+		CmdLineManager.Insert("kick", 	CreateDelegate(this.KickSlave, this));
+		CmdLineManager.Insert("send", 	CreateDelegate(this.SendDatasToSlave, this));
+		CmdLineManager.Insert("help", 	function(){
+			
+			var cmds = "";
+			for (var p in CmdLineManager._cmds)
+				cmds += p + ", ";
+			Logger.writeFor("CmdLineManager", "Available commands".yellow + " : [" + (cmds == "" ? cmds : cmds.substr(0, cmds.length - 2)) + "]");
+		});
 	},
 	ListSlaves				: function()
 	{
@@ -110,7 +129,7 @@ var Master = Class.extend(// Runnable.extend(
 		
 		var socket = SlaveManagerInstance.GetSocketById(slaveId);
 		socket.end();
-		SlaveManagerInstance.RemoveById(slaveId);
+		// SlaveManagerInstance.RemoveById(slaveId); // Replaced by client_socket.on('end')_
 	},
 	SendDatasToSlave		: function(args)
 	{
@@ -131,6 +150,9 @@ var Master = Class.extend(// Runnable.extend(
 
 Logger.writeFor("Master", "About to start");
 
+process.on('uncaughtException', function(ex) {
+    Logger.writeFor("Error::Uncaught_exeception", "[" + (ex + '').red + ']');
+});
 var MasterInstance = new Master();
 CmdLineManager.StartRecordingInputs();
 

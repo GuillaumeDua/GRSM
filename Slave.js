@@ -4,6 +4,7 @@ var colors 			= require('colors');
 var Logger			= require('../GCL_NodeJs/Logger.js').Logger;
 var	CmdLineManager	= require('../GCL_NodeJs/CmdLineManager.js').CmdLineManager;
 var exec 			= require('child_process').exec;
+var JSON			= require('JSON');
 
 // [Todo] : Move to GCL
 function 	CreateDelegate(func, target)
@@ -51,6 +52,10 @@ var Slave = Class.extend(
 			}
 			else this.rdChunk += data;
 		});
+		this._socket.on('error', function() {
+			Logger.writeFor("Network", "error");
+			// this._socket.end();
+		});
 		this._socket.on('close', function() {
 			Logger.writeFor("Network", "disconnected");
 		});
@@ -63,6 +68,7 @@ var Slave = Class.extend(
 	},
 	InitializeCmdManager	: function()
 	{
+		CmdLineManager.Insert("msg", 	function(){ Logger.writeFor("server::msg", JSON.stringify(arguments));});
 		CmdLineManager.Insert("cmd", 	CreateDelegate(this.ExecuteCmd, 	this));
 		CmdLineManager.Insert("script", CreateDelegate(this.ExecuteScript, 	this));
 	},
@@ -85,7 +91,13 @@ var Slave = Class.extend(
 								if (stderr.length != 0) Logger.writeFor("Slave::ExecuteCmd", 'stderr : [' + stderr + ']');
 								if (error !== null)
 									Logger.writeFor("Slave::ExecuteCmd", 'error: [' + error + ']');
-								});
+									
+								this._socket.write(	"[stdout][" + stdout + "]\n" +
+													"[stderr][" + stderr + "]\n" + 
+													"[error][" + (error !== null ? error : "") + "]"
+													);
+									
+							});
 	}
 });
 
