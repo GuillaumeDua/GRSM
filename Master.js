@@ -73,7 +73,6 @@ var Master = Class.extend(// Runnable.extend(
 				SlaveManagerInstance.RemoveBySocket(c);
 			});
 			c.on('data', function(data) {
-				// Logger.writeFor("Debug", "client.onData : [" + data + "] to chunk : [" + rdChunk + "]");
 				if (data == "\r\n")
 				{
 					Logger.writeFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
@@ -82,9 +81,8 @@ var Master = Class.extend(// Runnable.extend(
 				else rdChunk += data;
 			});
 			
-			// [todo] : on : close, timeout
-			
-			c.write('Hello slave\r\n');
+			// [Todo] : on : close, timeout -> crash
+			// c.write('Hello slave\r\n');
 			// c.pipe(c);
 		});
 		this._server.listen(4242, function() {
@@ -127,7 +125,7 @@ var Master = Class.extend(// Runnable.extend(
 		for (var i = 1; i < args.length; ++i)
 			data += (i != 1 ?  ' ' + args[i] : args[i]);
 		Logger.write("writing to [" + args[0] + "] : [" + data + "]");
-		socket.write(data);
+		socket.write(data + "\r\n");	// Hard-coded EOL marker : "\r\n"
 	}
 });
 

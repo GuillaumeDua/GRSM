@@ -16,17 +16,44 @@ function 	CreateDelegate(func, target)
 
 var Slave = Class.extend(
 {
-	_socket : null,
+	_socket 	: null,
+	_rdChunk	: "",
 	
 	initialize				: function()
 	{
+		this.InitializeClient();
 		this.InitializeCmdManager();
 		// this.Connect();
 	},
-	Connect					: function()
+	
+	InitializeClient		: function()
 	{
 		this._socket = new net.Socket();
-		// this._socket.connect(4242, "127.0.0.1", function());
+		this.rdChunk = "";
+		this._socket.connect(4242, '127.0.0.1', CreateDelegate(
+			function() { // Hard-set of master's ip/port
+				Logger.writeFor("Network", "connected");
+				this._socket.write('Hello master, i am here to serve');
+			},
+			this)
+		);
+
+		this._socket.on('data', function(data) {
+			// Logger.writeFor("Network", 'received : [' + data + ']');
+			var cmd = "" + data;
+			
+			if (cmd.substr(cmd.length - 2, 2) == "\r\n")
+			{
+				this.rdChunk += cmd.substr(0, cmd.length - 2);
+				Logger.writeFor('Network', 'data received [' + this.rdChunk + ']');
+				CmdLineManager.ManageCmd(this.rdChunk);
+				this.rdChunk = "";
+			}
+			else this.rdChunk += data;
+		});
+		this._socket.on('close', function() {
+			Logger.writeFor("Network", "disconnected");
+		});
 	},
 	socket_onData			: function()
 	{
@@ -41,6 +68,7 @@ var Slave = Class.extend(
 	},
 	ExecuteScript			: function(cmd, script)
 	{
+		// split data by tags
 		// write script to file
 		// Execute cmd with arg == script_path
 	},
@@ -65,6 +93,6 @@ var Slave = Class.extend(
 Logger.writeFor("Slave", "About to start");
 
 var SlaveInstance = new Slave();
-CmdLineManager.StartRecordingInputs(); // For debug only. Then, cmd will be socket's read datas
+// CmdLineManager.StartRecordingInputs(); // For debug only. Then, cmd will be socket's read datas
 
 Logger.writeFor("Slave", "Started");
