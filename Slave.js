@@ -88,19 +88,20 @@ var Slave = Class.extend(
 			cmd += (i != 0 ?  ' ' + args[i] : args[i]);
 		// Logger.writeFor("Slave::ExecuteCmd", 'cmd is : [' + cmd + ']');
 		var child = exec(	cmd,
-							function (error, stdout, stderr)
-							{
-								Logger.writeFor("Slave::ExecuteCmd", 'stdout : [' + stdout + ']');
-								if (stderr.length != 0) Logger.writeFor("Slave::ExecuteCmd", 'stderr : [' + stderr + ']');
-								if (error !== null)
-									Logger.writeFor("Slave::ExecuteCmd", 'error: [' + error + ']');
-									
-								this._socket.write(	"[stdout][" + stdout + "]\n" +
-													"[stderr][" + stderr + "]\n" + 
-													"[error][" + (error !== null ? error : "") + "]"
-													);
-									
-							});
+							CreateDelegate(this.ExecuteCmdCB, this));
+	},
+	ExecuteCmdCB			: function(error, stdout, stderr)
+	{
+		Logger.writeFor("Slave::ExecuteCmd", 'stdout : [' + stdout + ']');
+		if (stderr.length != 0) Logger.writeFor("Slave::ExecuteCmd", 'stderr : [' + stderr + ']');
+		if (error !== null)
+			Logger.writeFor("Slave::ExecuteCmd", 'error: [' + error + ']');
+			
+		this._socket.write(	"[stdout][" + stdout + "]\n" +
+							"[stderr][" + stderr + "]\n" + 
+							"[error][" + (error !== null ? error : "") + "]" +
+							"\r\n"
+							);
 	}
 });
 
