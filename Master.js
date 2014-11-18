@@ -78,23 +78,20 @@ var Master = Class.extend(// Runnable.extend(
 				SlaveManagerInstance.RemoveBySocket(c);
 			});
 			c.on('data', function(data) {
-				if (data == "\r\n")
+				rdChunk += data;
+				if (rdChunk.length >= 2 && rdChunk.substr(rdChunk.length -2, 2) == "\r\n")
 				{
-					Logger.writeFor('server', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
+					rdChunk = rdChunk.substr(0, rdChunk.length -2);
+					Logger.writeFor('Server::OnData', 'data from [' + SlaveManagerInstance.GetIdBySocket(c) + ']: [' + rdChunk + ']');
 					rdChunk = "";
 				}
-				else rdChunk += data;
 			});
-			
-			// [Todo] : on : close, timeout -> crash
-			// c.write('Hello slave\r\n');
-			// c.pipe(c);
 		});
 		this._server.on('error', function(error) {
-			Logger.writeFor('server', 'error close emitted : [' + error.red + ']');
+			Logger.writeFor('Server::OnError', 'error close emitted : [' + error.red + ']');
 		});
 		this._server.on('close', function() {
-			Logger.writeFor('server', 'close emitted');
+			Logger.writeFor('Server::OnClose', 'close emitted');
 		});
 		this._server.listen(4242, function() {
 		  Logger.writeFor('server', 'Master server is ready');
@@ -102,23 +99,49 @@ var Master = Class.extend(// Runnable.extend(
 	},
 	InitializeCmdManager	: function()
 	{
-		//	[Todo] : help
-		// CmdLineManager.Insert("quit", 			CreateDelegate(this.Stop, 		this));
-		// CmdLineManager.Insert("stop", 			CreateDelegate(this.Stop, 		this));
-		// CmdLineManager.Insert("start", 			CreateDelegate(this.DebugStart, this));
-		CmdLineManager.Insert("list", 	CreateDelegate(this.ListSlaves, this));
-		CmdLineManager.Insert("kick", 	CreateDelegate(this.KickSlave, this));
-		CmdLineManager.Insert("send", 	CreateDelegate(this.SendDatasToSlave, this));
+		// Helps
+		CmdLineManager.InsertHelp("ls",   	"Alias of list");
+		CmdLineManager.InsertHelp("list", 	"List active slaves. Add a slave ID to get a particular slave description");
+		CmdLineManager.InsertHelp("kick", 	"Kick a speccific slave");
+		CmdLineManager.InsertHelp("kill", 	"Alias of kick");
+		CmdLineManager.InsertHelp("send", 	"Send a msg to a specific slave");
+	    CmdLineManager.InsertHelp("msg",  	"alias of send");
+	    CmdLineManager.InsertHelp("help", 	"display help. If an ID is provided, display help of a specific cmd");
+		CmdLineManager.InsertHelp("?", 		"Alias of help");
+		
+		// Cmds
+		CmdLineManager.Insert("ls", 	CreateDelegate(this.ListSlaves, 		this));
+		CmdLineManager.Insert("list", 	CreateDelegate(this.ListSlaves, 		this));
+		CmdLineManager.Insert("kick", 	CreateDelegate(this.KickSlave, 			this));
+		CmdLineManager.Insert("kill", 	CreateDelegate(this.KickSlave, 			this));
+		CmdLineManager.Insert("send", 	CreateDelegate(this.SendDatasToSlave, 	this));
+		CmdLineManager.Insert("msg", 	CreateDelegate(this.SendDatasToSlave, 	this));
 		CmdLineManager.Insert("help", 	function(){
+			
+			if (arguments[0] !== undefined)
+			{
+				var help = CmdLineManager.GetHelp(arguments[0]);
+				Logger.writeFor("CmdLineManager::help", (help === null ? "Unknown cmd" : help));
+				return;
+			}
 			
 			var cmds = "";
 			for (var p in CmdLineManager._cmds)
 				cmds += p + ", ";
 			Logger.writeFor("CmdLineManager", "Available commands".yellow + " : [" + (cmds == "" ? cmds : cmds.substr(0, cmds.length - 2)) + "]");
 		});
+		CmdLineManager.Insert("?", CmdLineManager.Get("help"));
 	},
 	ListSlaves				: function()
 	{
+		if (arguments[0] !== undefined)
+		{
+			Logger.writeFor("CmdLineManager::help::ListSlave",
+							"\n|- " + arguments[0] + " => "
+								+ (SlaveManagerInstance._slaves[arguments[0]] === undefined ? "Dos not exist" : GetSocketDump(SlaveManagerInstance._slaves[arguments[0]])));
+			return;
+		}
+	
 		Logger.write("Listing slaves (".yellow + SlaveManagerInstance._slaves.length + ")".yellow);
 		for (var i = 0; i < SlaveManagerInstance._slaves.length; ++i)
 			Logger.write("\t|- " + i + " => " + GetSocketDump(SlaveManagerInstance._slaves[i]));

@@ -17,8 +17,7 @@ function 	CreateDelegate(func, target)
 
 var Slave = Class.extend(
 {
-	_socket 	: null,
-	_rdChunk	: "",
+	_socket 				: null,
 	
 	initialize				: function()
 	{
@@ -26,31 +25,28 @@ var Slave = Class.extend(
 		this.InitializeCmdManager();
 		// this.Connect();
 	},
-	
 	InitializeClient		: function()
 	{
 		this._socket = new net.Socket();
-		this.rdChunk = "";
+		var rdChunk = "";
 		this._socket.connect(4242, '127.0.0.1', CreateDelegate(
 			function() { // Hard-set of master's ip/port
 				Logger.writeFor("Network", "connected");
-				this._socket.write('Hello master, i am here to serve');
+				this._socket.write('Hello master, i am here to serve\r\n');
 			},
 			this)
 		);
 
 		this._socket.on('data', function(data) {
-			// Logger.writeFor("Network", 'received : [' + data + ']');
-			var cmd = "" + data;
-			
-			if (cmd.substr(cmd.length - 2, 2) == "\r\n")
+
+			rdChunk += data;
+			if (rdChunk.length >= 2 && rdChunk.substr(rdChunk.length -2, 2) == "\r\n")
 			{
-				this.rdChunk += cmd.substr(0, cmd.length - 2);
-				Logger.writeFor('Network', 'data received [' + this.rdChunk + ']');
-				CmdLineManager.ManageCmd(this.rdChunk);
-				this.rdChunk = "";
+				rdChunk = rdChunk.substr(0, rdChunk.length -2);
+				Logger.writeFor('Network', 'data received [' + rdChunk + ']');
+				CmdLineManager.ManageCmd(rdChunk);
+				rdChunk = "";
 			}
-			else this.rdChunk += data;
 		});
 		this._socket.on('error', function() {
 			Logger.writeFor("Network", "error");
@@ -68,6 +64,7 @@ var Slave = Class.extend(
 	},
 	InitializeCmdManager	: function()
 	{
+		// CmdLineManager.Insert("msg", 	function(){ Logger.writeFor("server::msg", JSON.stringify(arguments));});
 		CmdLineManager.Insert("msg", 	function(){ Logger.writeFor("server::msg", JSON.stringify(arguments));});
 		CmdLineManager.Insert("cmd", 	CreateDelegate(this.ExecuteCmd, 	this));
 		CmdLineManager.Insert("script", CreateDelegate(this.ExecuteScript, 	this));
@@ -80,6 +77,12 @@ var Slave = Class.extend(
 	},
 	ExecuteCmd				: function(args)
 	{
+		if (args === undefined)
+		{
+			Logger.writeFor("ExecuteCmd::Error", "No cmd given");
+			return;
+		}
+	
 		var cmd = "";
 		for (var i = 0; i < args.length; ++i)
 			cmd += (i != 0 ?  ' ' + args[i] : args[i]);
