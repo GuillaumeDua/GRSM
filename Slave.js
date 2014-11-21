@@ -5,6 +5,17 @@ var Logger			= require('../GCL_NodeJs/Logger.js').Logger;
 var	CmdLineManager	= require('../GCL_NodeJs/CmdLineManager.js').CmdLineManager;
 var exec 			= require('child_process').exec;
 var JSON			= require('JSON');
+var ArgumentsLoader	= require('../GCL_NodeJs/ArgumentsParsor.js').ArgumentsLoader;
+
+ArgumentsLoader.args = ['', '' , 4242, "127.0.0.1"];
+ArgumentsLoader.Dump();
+ArgumentsLoader.LoadArguments();
+ArgumentsLoader.Dump();
+
+
+var PARAM_PORT = ArgumentsLoader.GetValue(2);
+var PARAM_ADDR = ArgumentsLoader.GetValue(3);
+
 
 // [Todo] : Move to GCL
 function 	CreateDelegate(func, target)
@@ -29,7 +40,7 @@ var Slave = Class.extend(
 	{
 		this._socket = new net.Socket();
 		var rdChunk = "";
-		this._socket.connect(4242, '127.0.0.1', CreateDelegate(
+		this._socket.connect(PARAM_PORT, PARAM_ADDR, CreateDelegate(
 			function() { // Hard-set of master's ip/port
 				Logger.writeFor("Network", "connected");
 				this._socket.write('Hello master, i am here to serve\r\n');
@@ -108,7 +119,9 @@ var Slave = Class.extend(
 
 Logger.writeFor("Slave", "About to start");
 
+
 var SlaveInstance = new Slave();
 // CmdLineManager.StartRecordingInputs(); // For debug only. Then, cmd will be socket's read datas
+
 
 Logger.writeFor("Slave", "Started");

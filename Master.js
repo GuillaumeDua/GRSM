@@ -4,6 +4,14 @@ var colors 			= require('colors');
 var Logger			= require('../GCL_NodeJs/Logger.js').Logger;
 var	CmdLineManager	= require('../GCL_NodeJs/CmdLineManager.js').CmdLineManager;
 var JSON			= require('JSON');
+var ArgumentsLoader	= require('../GCL_NodeJs/ArgumentsParsor.js').ArgumentsLoader;
+
+ArgumentsLoader.args = ['', '' , 4242];
+ArgumentsLoader.Dump();
+ArgumentsLoader.LoadArguments();
+ArgumentsLoader.Dump();
+
+var PARAM_PORT = ArgumentsLoader.GetValue(2);
 
 var	SlaveManager 	=
 {
@@ -93,7 +101,7 @@ var Master = Class.extend(// Runnable.extend(
 		this._server.on('close', function() {
 			Logger.writeFor('Server::OnClose', 'close emitted');
 		});
-		this._server.listen(4242, function() {
+		this._server.listen(PARAM_PORT, function() {
 		  Logger.writeFor('server', 'Master server is ready');
 		});
 	},
