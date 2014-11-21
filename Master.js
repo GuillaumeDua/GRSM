@@ -130,7 +130,7 @@ var Master = Class.extend(// Runnable.extend(
 				cmds += p + ", ";
 			Logger.writeFor("CmdLineManager", "Available commands".yellow + " : [" + (cmds == "" ? cmds : cmds.substr(0, cmds.length - 2)) + "]");
 		});
-		CmdLineManager.Insert("?", CmdLineManager.Get("help"));
+		CmdLineManager.Insert("?", 		CmdLineManager.Get("help"));
 	},
 	ListSlaves				: function()
 	{
